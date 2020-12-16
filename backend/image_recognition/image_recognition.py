@@ -1,6 +1,7 @@
 import os
 import math
 import face_recognition
+import time
 
 from django.conf import settings
 
@@ -20,13 +21,15 @@ def euclidean_distance(x, y):
 
 
 def knn_search(query, data, num_neighbors):
+    start = time.time()
     results = []
     for index, image_encoding in enumerate(data):
         distance = euclidean_distance(query, image_encoding)
         results.append((index, distance))
     results.sort(key=lambda x: x[1])
     results = [i[0] for i in results]
-    print(f'Results: {len(results)}')
+    end = time.time()
+    print(f"[Images: {NUM_IMAGES}] Time: {end - start}")
     return results[:num_neighbors]
 
 
@@ -38,14 +41,12 @@ def load_images():
     images = []
     for image_file in image_files[:NUM_IMAGES]:
         if image_file[0] != '.':
-            print(f'Processing {image_file}')
             image = face_recognition.load_image_file(IMAGE_DB_LOCATION + '/' + image_file)
             encoding = face_recognition.face_encodings(image)
             if len(encoding) > 0:
                 images.append(encoding[0])
             else:
                 images.append([])
-    print('Length:', len(images))
     return images
 
 

@@ -23,7 +23,7 @@ class ImageRecognitionView(APIView):
             img_path = image_serializer.data.get('file')
             img_name = '/'.join(img_path.split('/')[2:])
             url = os.path.join(settings.MEDIA_ROOT, img_name)
-            images = image_recognition.do_query(url, 5)
+            images = image_recognition.do_query(url, 8)
             return Response({'images': images}, status=status.HTTP_200_OK)
         else:
             return Response(image_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
