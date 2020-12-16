@@ -10,7 +10,7 @@ OUTPUT_IMAGE_LOCATION = '/media/images/'
 
 
 MAX_DISTANCE = 10000
-NUM_IMAGES = 5
+NUM_IMAGES = 25
 
 
 def euclidean_distance(x, y):
@@ -36,7 +36,7 @@ def knn_search(query, data, num_neighbors):
 def load_images():
     image_files = os.listdir(IMAGE_DB_LOCATION)
     images = []
-    for image_file in image_files:
+    for image_file in image_files[:NUM_IMAGES]:
         if image_file[0] != '.':
             print(f'Processing {image_file}')
             image = face_recognition.load_image_file(IMAGE_DB_LOCATION + '/' + image_file)
@@ -58,7 +58,6 @@ def do_query(query_image_path, num_neighbors):
     for image in images:
         if image[0] != '.':
             output.append(image)
-    # List of Enconding (vector caracteristico)
     image_data = load_images()
 
     results = knn_search(query_encoding, image_data, num_neighbors)
