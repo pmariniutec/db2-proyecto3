@@ -3,6 +3,7 @@ import math
 import face_recognition
 
 from django.conf import settings
+from rtree import index
 
 
 IMAGE_DB_LOCATION = os.path.join(settings.MEDIA_ROOT, 'images')
@@ -19,37 +20,48 @@ def euclidean_distance(x, y):
     return math.sqrt(sum((i - j) ** 2 for i, j in zip(x, y)))
 
 
-def knn_search(query, data, num_neighbors):
-    results = []
-    for index, image_encoding in enumerate(data):
-        distance = euclidean_distance(query, image_encoding)
-        results.append((index, distance))
-    results.sort(key=lambda x: x[1])
-    results = [i[0] for i in results]
-    print(f'Results: {len(results)}')
-    return results[:num_neighbors]
+def knn_search(query, image_idx, num_neighbors):
+    return image_idx.nearest(query, num_neighbors, True)
 
 
 # TODO: This should only be executed once.
 #       Create en R-TREE with the encodings and store to disk.
 #       The application should load the tree to memory when started, if present, else compute it.
-def load_images():
+
+def create_tree():
     image_files = os.listdir(IMAGE_DB_LOCATION)
-    images = []
+    idx_name  = IMAGE_DB_LOCATION + '/' + 'image_rtree'
+    idx_property = index.Property()
+    idx_property.dimension = 64
+
+    image_idx = index.Index(idx_name, properties=idx_property)
+    print(image_idx.properties)
+    img_id = 0
     for image_file in image_files:
         if image_file[0] != '.':
             print(f'Processing {image_file}')
             image = face_recognition.load_image_file(IMAGE_DB_LOCATION + '/' + image_file)
             encoding = face_recognition.face_encodings(image)
             if len(encoding) > 0:
-                images.append(encoding[0])
-            else:
-                images.append([])
-    print('Length:', len(images))
-    return images
+                image_idx.insert(img_id, encoding[0], image_file)
+                img_id += 1
+    return image_idx
+
+
+def load_images():
+    idx_name  = IMAGE_DB_LOCATION + '/' + 'image_rtree.idx'
+    try:
+        file_idx = open(idx_name)
+        image_idx = index.Index(idx_name)
+    except IOError:
+        print("File not found")
+        image_idx = create_tree()
+
+    return image_idx    
 
 
 def do_query(query_image_path, num_neighbors):
+    print ("QUERY IS CALLED")
     query_image = face_recognition.load_image_file(query_image_path)
     query_encoding = face_recognition.face_encodings(query_image)[0]
 
@@ -59,7 +71,8 @@ def do_query(query_image_path, num_neighbors):
         if image[0] != '.':
             output.append(image)
     # List of Enconding (vector caracteristico)
-    image_data = load_images()
+    image_idx = load_images()
 
-    results = knn_search(query_encoding, image_data, num_neighbors)
+    results = knn_search(query_encoding, image_idx, num_neighbors)
+    print(results)
     return [{'url': OUTPUT_IMAGE_LOCATION + output[element], 'title': output[element]} for element in results]
